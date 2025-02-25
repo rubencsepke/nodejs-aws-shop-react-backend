@@ -1,0 +1,125 @@
+openapi: 3.0.0
+info:
+  title: Product Service API
+  version: 1.0.0
+
+servers:
+  - url: https://l32255sj64.execute-api.eu-central-1.amazonaws.com/prod
+    variables:
+      apiId:
+        default: l32255sj64
+        description: API Gateway ID
+      region:
+        default: eu-central-1
+        description: AWS Region
+      stage:
+        default: prod
+        description: API Gateway Stage
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - title
+        - price
+      properties:
+        id:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: "Product 1"
+        price:
+          type: number
+          format: float
+          example: 99.99
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Error name"
+        message:
+          type: string
+          example: "Error message"
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  /products:
+    get:
+      summary: Get all products
+      description: Returns a list of all available products in the list
+      operationId: getProducts
+      tags:
+        - Products
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+              example:
+                - id: "1"
+                  title: "Product 1"
+                  price: 100
+                - id: "2"
+                  title: "Product 2"
+                  price: 150
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /products/{id}:
+    get:
+      summary: Get product by ID
+      description: Returns a single product by ID
+      operationId: getProductById
+      tags:
+        - Products
+      parameters:
+        - name: id
+          in: path
+          description: ID of the product to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+
+tags:
+  - name: Products
+    description: Operations about products
