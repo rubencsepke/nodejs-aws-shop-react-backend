@@ -17,6 +17,13 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 		});
 
+		const stocksTable = new dynamodb.Table(this, 'StocksTable', {
+			partitionKey: { name: 'product_id', type: dynamodb.AttributeType.STRING },
+			tableName: 'Stocks',
+			billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+			removalPolicy: cdk.RemovalPolicy.DESTROY,
+		});
+
 		//Define Lambda function resource
 		const getProductsListFunction = new lambda.Function(this, 'GetProductsListFunction', {
 			runtime: lambda.Runtime.NODEJS_20_X,
@@ -24,6 +31,7 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 			code: lambda.Code.fromAsset('lambda'),
 			environment: {
 				PRODUCTS_TABLE_NAME: productsTable.tableName,
+				STOCKS_TABLE_NAME: stocksTable.tableName,
 			},
 		});
 
@@ -33,6 +41,7 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 			code: lambda.Code.fromAsset('lambda'),
 			environment: {
 				PRODUCTS_TABLE_NAME: productsTable.tableName,
+				STOCKS_TABLE_NAME: stocksTable.tableName,
 			},
 		});
 
@@ -47,7 +56,10 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 		});
 
 		productsTable.grantReadData(getProductsListFunction);
+		stocksTable.grantReadData(getProductsListFunction);
+		
 		productsTable.grantReadData(getProductsByIdFunction);
+		stocksTable.grantReadData(getProductsByIdFunction);
 
 		// Define lambda resources with GET method
 		const products = api.root.addResource('products');
