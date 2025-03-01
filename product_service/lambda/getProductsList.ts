@@ -1,5 +1,5 @@
-import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { Product } from "../model/product";
 
 export const handler = async () => {
@@ -11,7 +11,7 @@ export const handler = async () => {
         TableName: "Products",
     }));
 
-    const products: Product[] = productsResult.Items as unknown as Product[] || [];
+    const products: Product[] = productsResult.Items as Product[] || [];
 
     return {
         statusCode: 200,
