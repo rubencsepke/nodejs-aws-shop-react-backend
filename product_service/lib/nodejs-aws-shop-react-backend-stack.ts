@@ -45,6 +45,16 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 			},
 		});
 
+		const createProduct = new lambda.Function(this, 'CreateProduct', {
+			runtime: lambda.Runtime.NODEJS_20_X,
+			handler: 'createProduct.handler',
+			code: lambda.Code.fromAsset('lambda'),
+			environment: {
+				PRODUCTS_TABLE_NAME: productsTable.tableName,
+				STOCKS_TABLE_NAME: stocksTable.tableName,
+			},
+		});
+
 		// Define API Gateway resource
 		const api = new apigateway.RestApi(this, 'ProductServiceApi', {
 			restApiName: 'Product Service',
@@ -57,15 +67,20 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 
 		productsTable.grantReadData(getProductsListFunction);
 		stocksTable.grantReadData(getProductsListFunction);
-		
+
 		productsTable.grantReadData(getProductsByIdFunction);
 		stocksTable.grantReadData(getProductsByIdFunction);
 
-		// Define lambda resources with GET method
+		productsTable.grantWriteData(createProduct);
+		stocksTable.grantWriteData(createProduct);
+
+		// Define lambda resources and methods
 		const products = api.root.addResource('products');
 		products.addMethod('GET', new apigateway.LambdaIntegration(getProductsListFunction));
+		products.addMethod('POST', new apigateway.LambdaIntegration(createProduct));
 
 		const productsById = products.addResource('{productId}');
 		productsById.addMethod('GET', new apigateway.LambdaIntegration(getProductsByIdFunction));
+
 	}
 }
