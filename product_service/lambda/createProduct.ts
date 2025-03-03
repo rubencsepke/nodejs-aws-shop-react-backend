@@ -22,6 +22,24 @@ export const handler = async (event: any) => {
         };
     }
 
+    if (typeof title !== 'string' ||
+        typeof description !== 'string' ||
+        typeof price !== 'number' ||
+        typeof count !== 'number') {
+        return {
+            statusCode: 400,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST",
+                "Access-Control-Allow-Headers": "Content-Type"
+            },
+            body: JSON.stringify({
+                message: 'Invalid data types. Title and description must be strings, price and count must be numbers.'
+            }),
+        };
+    }
+
     const product = {
         TableName: "Products",
         Item: {
