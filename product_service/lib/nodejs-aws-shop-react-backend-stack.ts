@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import path = require('path');
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -25,30 +26,30 @@ export class NodejsAwsShopReactBackendStack extends cdk.Stack {
 		});
 
 		//Define Lambda function resource
-		const getProductsListFunction = new lambda.Function(this, 'GetProductsListFunction', {
+		const getProductsListFunction = new NodejsFunction(this, 'GetProductsListFunction', {
 			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'getProductsList.handler',
-			code: lambda.Code.fromAsset('lambda'),
+			handler: 'handler',
+			entry: path.join(__dirname, '../lambda/getProductsList.ts'),
 			environment: {
 				PRODUCTS_TABLE_NAME: productsTable.tableName,
 				STOCKS_TABLE_NAME: stocksTable.tableName,
 			},
 		});
 
-		const getProductsByIdFunction = new lambda.Function(this, 'GetProductsByIdFunction', {
+		const getProductsByIdFunction = new NodejsFunction(this, 'GetProductsByIdFunction', {
 			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'getProductsById.handler',
-			code: lambda.Code.fromAsset('lambda'),
+			handler: 'handler',
+			entry: path.join(__dirname, '../lambda/getProductsById.ts'),
 			environment: {
 				PRODUCTS_TABLE_NAME: productsTable.tableName,
 				STOCKS_TABLE_NAME: stocksTable.tableName,
 			},
 		});
 
-		const createProduct = new lambda.Function(this, 'CreateProduct', {
+		const createProduct = new NodejsFunction(this, 'CreateProduct', {
 			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'createProduct.handler',
-			code: lambda.Code.fromAsset('lambda'),
+			handler: 'handler',
+			entry: path.join(__dirname, '../lambda/createProduct.ts'),
 			environment: {
 				PRODUCTS_TABLE_NAME: productsTable.tableName,
 				STOCKS_TABLE_NAME: stocksTable.tableName,
