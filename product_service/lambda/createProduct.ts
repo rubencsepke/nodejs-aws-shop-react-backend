@@ -13,7 +13,7 @@ export const handler = async (event: any) => {
         const client = new DynamoDBClient({ region: "eu-central-1" });
         const dynamodb = DynamoDBDocumentClient.from(client);
 
-        if (!title || !description || !price || !count) {
+        if (!title || !description || !price || price < 0 || !count || count < 0) {
             logger.error('Invalid request', event.body);
             return {
                 statusCode: 400,
