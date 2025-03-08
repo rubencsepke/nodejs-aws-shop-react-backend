@@ -18,7 +18,15 @@ export class ImportServiceStack extends cdk.Stack {
 			entry: path.join(__dirname, '../lambda/importProductsFile.ts'),
 			environment: {
 				BUCKET_NAME: bucket.bucketName,
-				BUCKET_REGION: this.region,
+			},
+		});
+
+		const importFileParserFunction = new NodejsFunction(this, 'ImportFileParserFunction', {
+			runtime: lambda.Runtime.NODEJS_20_X,
+			handler: 'handler',
+			entry: path.join(__dirname, '../lambda/importFileParser.ts'),
+			environment: {
+				BUCKET_NAME: bucket.bucketName,
 			},
 		});
 
@@ -33,6 +41,7 @@ export class ImportServiceStack extends cdk.Stack {
 		});
 
 		bucket.grantReadWrite(importProductsFileFunction);
+		bucket.grantRead(importFileParserFunction);
 
 		const importResource = api.root.addResource('import');
 		importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileFunction), {
