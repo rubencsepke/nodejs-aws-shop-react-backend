@@ -33,10 +33,10 @@ export class ImportServiceStack extends cdk.Stack {
 		// Define API Gateway resource
 		const api = new apigateway.RestApi(this, 'ImportServiceApi', {
 			restApiName: 'Import Service',
-            defaultCorsPreflightOptions: {
+            defaultCorsPreflightOptions: {        
 				allowOrigins: apigateway.Cors.ALL_ORIGINS,
-				allowMethods: ['GET'],
-				allowHeaders: ['Content-Type'],
+				allowMethods: apigateway.Cors.ALL_METHODS,
+				allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
             },
 		});
 
