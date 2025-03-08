@@ -1,9 +1,11 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+const awsRegion = process.env.AWS_REGION || 'eu-central-1';
+
 export const handler = async (event: any) => {
     try {
-        const s3Client = new S3Client({ region: process.env.AWS_REGION });
+        const s3Client = new S3Client({ region: awsRegion });
         const fileName = event.queryStringParameters.name;
 
         if (!fileName) {
@@ -21,7 +23,7 @@ export const handler = async (event: any) => {
 
         const key = `uploaded/${fileName}`;
         const put = new PutObjectCommand({
-            Bucket: process.env.IMPORT_BUCKET,
+            Bucket: 'ruben-cs-import-service-bucket',
             Key: key,
             ContentType: 'text/csv',
         });

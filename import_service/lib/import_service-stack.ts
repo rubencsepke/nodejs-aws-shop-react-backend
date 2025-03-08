@@ -31,8 +31,8 @@ export class ImportServiceStack extends cdk.Stack {
 		});
 
 		// Define API Gateway resource
-		const api = new apigateway.RestApi(this, 'ProductServiceApi', {
-			restApiName: 'Product Service',
+		const api = new apigateway.RestApi(this, 'ImportServiceApi', {
+			restApiName: 'Import Service',
             defaultCorsPreflightOptions: {
 				allowOrigins: apigateway.Cors.ALL_ORIGINS,
 				allowMethods: ['GET'],
@@ -41,7 +41,7 @@ export class ImportServiceStack extends cdk.Stack {
 		});
 
 		bucket.grantReadWrite(importProductsFileFunction);
-		bucket.grantRead(importFileParserFunction);
+		bucket.grantReadWrite(importFileParserFunction);
 
 		const importResource = api.root.addResource('import');
 		importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileFunction), {
