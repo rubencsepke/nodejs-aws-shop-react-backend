@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -52,5 +53,11 @@ export class ImportServiceStack extends cdk.Stack {
 				validateRequestParameters: true,
 			},
 		});
+
+		bucket.addEventNotification(
+			s3.EventType.OBJECT_CREATED,
+			new s3n.LambdaDestination(importFileParserFunction),
+			{ prefix: 'uploaded/' }
+		);
 	}
 }
