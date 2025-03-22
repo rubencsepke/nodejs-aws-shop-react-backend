@@ -6,7 +6,7 @@ export const handler = async (event: any) => {
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
-    const encodedCreds = token.split(' ')[1];
+    const encodedCreds = token.split('=')[1];
     const buff = Buffer.from(encodedCreds, 'base64');
     const plainCreds = buff.toString('utf-8').split(':');
     const username = plainCreds[0];

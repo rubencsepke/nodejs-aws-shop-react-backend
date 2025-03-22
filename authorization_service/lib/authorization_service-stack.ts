@@ -14,7 +14,7 @@ export class AuthorizationServiceStack extends cdk.Stack {
 			functionName: 'authorization',
 			entry: path.join(__dirname, '../lambda/basicAuthorizer.ts'),
 			environment: {
-				Ruben: 'PASSWORD',
+				rubencsepke: 'TEST_PASSWORD',
 			}
 		});
 
