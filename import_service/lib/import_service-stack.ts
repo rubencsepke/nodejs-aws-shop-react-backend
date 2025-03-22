@@ -39,13 +39,29 @@ export class ImportServiceStack extends cdk.Stack {
 			},
 		});
 
+		const basicAuthorizerFunction = lambda.Function.fromFunctionName(
+			this, 
+			"BasicAuthorizerFunction",
+			"authorization"
+		);
+
+		const authorizer = new apigateway.TokenAuthorizer(this, "Authorizer", {
+			handler: basicAuthorizerFunction
+		});
+
 		// Define API Gateway resource
 		const api = new apigateway.RestApi(this, 'ImportServiceApi', {
 			restApiName: 'Import Service',
             defaultCorsPreflightOptions: {        
 				allowOrigins: apigateway.Cors.ALL_ORIGINS,
 				allowMethods: apigateway.Cors.ALL_METHODS,
-				allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
+				allowHeaders: [
+					'Content-Type',
+					'X-Amz-Date',
+					'Authorization',
+					'X-Api-Key',
+					'X-Amz-Security-Token',
+				],
             },
 		});
 
@@ -62,6 +78,30 @@ export class ImportServiceStack extends cdk.Stack {
 			requestValidatorOptions: {
 				validateRequestParameters: true,
 			},
+			authorizer: authorizer,
+			authorizationType: apigateway.AuthorizationType.CUSTOM,
+		});
+
+		api.addGatewayResponse('Unauthorized', {
+			type: apigateway.ResponseType.UNAUTHORIZED,
+			statusCode: '401',
+			responseHeaders: {
+				"Access-Control-Allow-Origin": "'*'"
+			},
+			templates: {
+				"application/json": "{\"message\":$context.error.messageString}"
+			}
+		});
+
+		api.addGatewayResponse('AccessDenied', {
+			type: apigateway.ResponseType.ACCESS_DENIED,
+			statusCode: '403',
+			responseHeaders: {
+				"Access-Control-Allow-Origin": "'*'"
+			},
+			templates: {
+				"application/json": "{\"message\":$context.error.messageString}"
+			}
 		});
 
 		bucket.addEventNotification(
