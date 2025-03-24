@@ -3,6 +3,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import path = require('path');
+import * as iam from "aws-cdk-lib/aws-iam";
 
 export class AuthorizationServiceStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -17,6 +18,15 @@ export class AuthorizationServiceStack extends cdk.Stack {
 				rubencsepke: 'TEST_PASSWORD',
 			}
 		});
+
+		basicAuthorizer.addToRolePolicy(
+			new iam.PolicyStatement({
+			actions: ["lambda:InvokeFunction"],
+			resources: [
+				`arn:aws:lambda:${this.region}:${this.account}:function:ImportServiceStack-ImportProductsFileFunction41430-hkx1vEJBIOZc`,
+			],
+			})
+		);
 
 	}
 }
