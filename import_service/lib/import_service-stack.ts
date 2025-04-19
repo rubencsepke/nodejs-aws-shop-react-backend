@@ -1,73 +1,130 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
-import path = require('path');
+import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import path = require("path");
 
 export class ImportServiceStack extends cdk.Stack {
-	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-		super(scope, id, props);
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
 
-		const bucket = s3.Bucket.fromBucketName(this, 'ImportBucket', 'ruben-cs-import-service-bucket');
+    const bucket = s3.Bucket.fromBucketName(
+      this,
+      "ImportBucket",
+      "ruben-cs-import-service-bucket"
+    );
 
-		const catalogItemsQueue = sqs.Queue.fromQueueArn(
-			this,
-			'CatalogItemsQueue',
-			'arn:aws:sns:eu-central-1:941669759057:CreateProductTopic'
-		  );
+    const catalogItemsQueue = sqs.Queue.fromQueueArn(
+      this,
+      "CatalogItemsQueue",
+      "arn:aws:sns:eu-central-1:941669759057:CreateProductTopic"
+    );
 
-		const importProductsFileFunction = new NodejsFunction(this, 'ImportProductsFileFunction', {
-			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'handler',
-			entry: path.join(__dirname, '../lambda/importProductsFile.ts'),
-			environment: {
-				BUCKET_NAME: bucket.bucketName,
-				SQS_QUEUE_URL: catalogItemsQueue.queueUrl
-			},
-		});
+    const importProductsFileFunction = new NodejsFunction(
+      this,
+      "ImportProductsFileFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(__dirname, "../lambda/importProductsFile.ts"),
+        environment: {
+          BUCKET_NAME: bucket.bucketName,
+          SQS_QUEUE_URL: catalogItemsQueue.queueUrl,
+        },
+      }
+    );
 
-		const importFileParserFunction = new NodejsFunction(this, 'ImportFileParserFunction', {
-			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'handler',
-			entry: path.join(__dirname, '../lambda/importFileParser.ts'),
-			environment: {
-				BUCKET_NAME: bucket.bucketName,
-			},
-		});
+    const importFileParserFunction = new NodejsFunction(
+      this,
+      "ImportFileParserFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(__dirname, "../lambda/importFileParser.ts"),
+        environment: {
+          BUCKET_NAME: bucket.bucketName,
+        },
+      }
+    );
 
-		// Define API Gateway resource
-		const api = new apigateway.RestApi(this, 'ImportServiceApi', {
-			restApiName: 'Import Service',
-            defaultCorsPreflightOptions: {        
-				allowOrigins: apigateway.Cors.ALL_ORIGINS,
-				allowMethods: apigateway.Cors.ALL_METHODS,
-				allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
-            },
-		});
+    const basicAuthorizerFunction = lambda.Function.fromFunctionName(
+      this,
+      "BasicAuthorizerFunction",
+      "authorization"
+    );
 
-		bucket.grantReadWrite(importProductsFileFunction);
-		bucket.grantReadWrite(importFileParserFunction);
+    const authorizer = new apigateway.TokenAuthorizer(this, "Authorizer", {
+      handler: basicAuthorizerFunction,
+      identitySource: apigateway.IdentitySource.header("Authorization"),
+    });
 
-		catalogItemsQueue.grantSendMessages(importProductsFileFunction);
+    // Define API Gateway resource
+    const api = new apigateway.RestApi(this, "ImportServiceApi", {
+      restApiName: "Import Service",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
+    });
 
-		const importResource = api.root.addResource('import');
-		importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileFunction), {
-			requestParameters: {
-				'method.request.querystring.name': true,
-			},
-			requestValidatorOptions: {
-				validateRequestParameters: true,
-			},
-		});
+    bucket.grantReadWrite(importProductsFileFunction);
+    bucket.grantReadWrite(importFileParserFunction);
 
-		bucket.addEventNotification(
-			s3.EventType.OBJECT_CREATED,
-			new s3n.LambdaDestination(importFileParserFunction),
-			{ prefix: 'uploaded/' }
-		);
-	}
+    catalogItemsQueue.grantSendMessages(importProductsFileFunction);
+
+    const importResource = api.root.addResource("import");
+    importResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(importProductsFileFunction),
+      {
+        requestParameters: {
+          "method.request.querystring.name": true,
+        },
+        requestValidatorOptions: {
+          validateRequestParameters: true,
+        },
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
+      }
+    );
+
+    api.addGatewayResponse("Unauthorized", {
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      statusCode: "401",
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+      },
+      templates: {
+        "application/json": JSON.stringify({
+          message: "Unauthorized",
+          statusCode: 401,
+        }),
+      },
+    });
+
+    api.addGatewayResponse("AccessDenied", {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      statusCode: "403",
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+      },
+      templates: {
+        "application/json": JSON.stringify({
+          message: "Forbidden",
+          statusCode: 403,
+        }),
+      },
+    });
+
+    bucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(importFileParserFunction),
+      { prefix: "uploaded/" }
+    );
+  }
 }
